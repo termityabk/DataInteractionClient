@@ -1,9 +1,10 @@
 from typing import List, Optional, Union
 
 import requests
-from exceptions.DataSourceNotActiveException import DataSourceNotActiveException
-from models.RequestData import RequestData
-from models.Tag import Tag
+
+from exceptions.data_source_not_active_exception import DataSourceNotActiveException
+from models.request_data import RequestData
+from models.tag import Tag
 
 
 class DataInteractionClient:

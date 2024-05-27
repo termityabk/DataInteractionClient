@@ -1,11 +1,10 @@
 # Unit tests for the RequestData class
 import sys
-
 sys.path.append("DataInteractionClient")
-sys.path.append("/models/")
+
 import unittest
 
-from models.RequestData import RequestData
+from DataInteractionClient.models.request_data import RequestData
 
 
 class TestRequestData(unittest.TestCase):

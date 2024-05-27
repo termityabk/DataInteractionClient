@@ -1,24 +1,20 @@
 import sys
+sys.path.append("DataInteractionClient")
+
 import unittest
 from unittest.mock import Mock, patch
 
 import requests
 
-sys.path.append("DataInteractionClient")
-sys.path.append("/models/")
-sys.path.append("/exceptions/")
-from exceptions.DataSourceNotActiveException import \
-    DataSourceNotActiveException
-from models.RequestData import RequestData
-from models.Tag import Tag
-
-from DataInteractionClient import DataInteractionClient
+from DataInteractionClient.data_interaction_client import DataInteractionClient
+from DataInteractionClient.exceptions.data_source_not_active_exception import DataSourceNotActiveException
+from DataInteractionClient.models.tag import Tag
 
 
 class TestClient(unittest.TestCase):
     def setUp(self):
         self.base_url = "https://example.com"
-        self.client = DataInteractionClient.DataInteractionClient(self.base_url)
+        self.client = DataInteractionClient(self.base_url)
         self.mock_response = Mock()
         self.mock_response.json.return_value = {"attributes": {"smtActive": True}}
 
@@ -58,7 +54,7 @@ class TestClient(unittest.TestCase):
 
     def test_set_data(self):
         self.base_url = "https://example.com"
-        self.client = DataInteractionClient.DataInteractionClient(self.base_url)
+        self.client = DataInteractionClient(self.base_url)
         self.mock_response = Mock()
         self.client._make_request = Mock(return_value=self.mock_response)
         tag1 = Tag(tag_id="tag1", attributes=[], data={"value": 10})
@@ -82,7 +78,7 @@ class TestClient(unittest.TestCase):
         )
 
     def test_create_tags_with_valid_data(self):
-        self.client = DataInteractionClient.DataInteractionClient("https://example.com")
+        self.client = DataInteractionClient("https://example.com")
         tags_data = [
             {
                 "id": "tag1",
@@ -122,7 +118,7 @@ class TestClient(unittest.TestCase):
             self.client.create_tags(tags_data)
 
     def test_create_request_data_all_params(self):
-        client = DataInteractionClient.DataInteractionClient("https://example.com")
+        client = DataInteractionClient("https://example.com")
         tag_id = ["tag1", "tag2"]
         from_time = "2022-01-01T00:00:00Z"
         to_time = "2022-01-02T00:00:00Z"
@@ -155,7 +151,7 @@ class TestClient(unittest.TestCase):
         )
 
     def test_create_request_data_required_param(self):
-        client = DataInteractionClient.DataInteractionClient("https://example.com")
+        client = DataInteractionClient("https://example.com")
         tag_id = "tag1"
 
         expected_request_data = {
@@ -172,7 +168,7 @@ class TestClient(unittest.TestCase):
         assert client.create_request_data(tag_id)
 
     def test_create_request_data_optional_none(self):
-        client = DataInteractionClient.DataInteractionClient("https://example.com")
+        client = DataInteractionClient("https://example.com")
         tag_id = "tag1"
 
         expected_request_data = {
@@ -191,7 +187,7 @@ class TestClient(unittest.TestCase):
         )
 
     def test_create_request_data_list_tag_ids(self):
-        client = DataInteractionClient.DataInteractionClient("https://example.com")
+        client = DataInteractionClient("https://example.com")
         tag_id = ["tag1", "tag2"]
 
         expected_request_data = {"tagId": tag_id, "from": 100, "to": 100000}
@@ -199,7 +195,7 @@ class TestClient(unittest.TestCase):
         assert client.create_request_data(tag_id)
 
     def test_create_request_data_single_tag_id(self):
-        client = DataInteractionClient.DataInteractionClient("https://example.com")
+        client = DataInteractionClient("https://example.com")
         tag_id = "tag1"
 
         expected_request_data = {
@@ -217,7 +213,7 @@ class TestClient(unittest.TestCase):
 
     @patch("requests.post")
     def test_make_request_success(self, mock_post):
-        self.client = DataInteractionClient.DataInteractionClient("https://example.com")
+        self.client = DataInteractionClient("https://example.com")
         mock_response = Mock()
         mock_response.status_code = 200
         mock_post.return_value = mock_response

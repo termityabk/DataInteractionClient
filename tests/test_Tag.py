@@ -1,9 +1,9 @@
 import sys
+sys.path.append("DataInteractionClient")
+
 import unittest
 
-sys.path.append("DataInteractionClient")
-sys.path.append("/models/")
-from models.Tag import Tag
+from DataInteractionClient.models.tag import Tag
 
 
 class TestTag(unittest.TestCase):
