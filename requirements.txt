@@ -1,0 +1,5 @@
+# Зависимости
+requests==2.31.0 # https://pypi.org/project/requests/
+
+# Тестирование
+coverage==7.5.2 # https://pypi.org/project/coverage/
