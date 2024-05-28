@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 import requests
 
+from exceptions.server_response_error_exception import ServerResponseErrorException
 from exceptions.data_source_not_active_exception import DataSourceNotActiveException
 from models.request_data import RequestData
 from models.tag import Tag
@@ -30,7 +31,7 @@ class DataInteractionClient:
         Выполняет HTTP-запрос к указанному URL с указанными параметрами.
     """
 
-    def __init__(self, base_url):
+    def __init__(self, base_url: str):
         """
         Инициализирует новый экземпляр класса Client.
 
@@ -45,7 +46,7 @@ class DataInteractionClient:
         """
         self.base_url = base_url
 
-    def connect(self, data_source_id: str):
+    def connect(self, data_source_id: str) -> dict:
         """
         Подключение к необходимому источнику данных и сбор метаданных источника.
 
@@ -69,12 +70,12 @@ class DataInteractionClient:
         else:
             raise DataSourceNotActiveException()
 
-    def set_data(self, tags: list):
+    def set_data(self, tags: List[Tag]) -> dict:
         """
         Отправляет данные тегов на сервер.
 
         Параметры:
-        tags (list): Список объектов Tag. Каждый объект Tag имеет атрибуты 'id' и 'data'.
+        tags (List[Tag]): Список объектов Tag. Каждый объект Tag имеет атрибуты 'id' и 'data'.
 
         Возвращает:
         dict: Ответ сервера в формате JSON.
@@ -89,7 +90,7 @@ class DataInteractionClient:
         response = self._make_request(url, {"data": data})
         return response.json()
 
-    def get_data(self, requests_data: RequestData):
+    def get_data(self, requests_data: RequestData) -> dict:
         """
         Получает исторические данные для указанных параметров.
 
@@ -121,19 +122,19 @@ class DataInteractionClient:
         response = self._make_request(url, {"params": params})
         return response.json()
 
-    def create_tags(self, tags_data: list):
+    def create_tags(self, tags_data: List[dict]) -> List[Tag]:
         """
         Создает экземпляры тегов из предоставленных данных.
 
         Параметры:
         ----------
-        tags_data : list
+        tags_data : List[dict]
             Список словарей, каждый из которых представляет данные тега.
             Каждый словарь должен содержать ключи 'id' и 'attributes'.
 
         Возвращает:
         ----------
-        list
+        List[Tag]
             Список созданных экземпляров тегов.
         """
         return [Tag(item["id"], item["attributes"]) for item in tags_data]
@@ -153,6 +154,7 @@ class DataInteractionClient:
         Метод создания словаря с данными для запроса.
 
         Параметры:
+        ----------
         tag_id : Union[str, List[str]], обязательно
             Массив идентификаторов тэгов, для которых запрашиваются данные.
         from_time : Union[str, int], необязательно
@@ -175,7 +177,9 @@ class DataInteractionClient:
 
 
         Возвращает:
-        obj: Объект RequestData который содержит в себе атрибуты для запроса исторических данных.
+        ----------
+        RequestData
+            Объект RequestData который содержит в себе атрибуты для запроса исторических данных.
         """
         request_data = {
             "tag_id": tag_id,
@@ -190,7 +194,7 @@ class DataInteractionClient:
 
         return RequestData(request_data)
 
-    def _make_request(self, url: str, params: dict):
+    def _make_request(self, url: str, params: dict) -> requests.Response:
         """
         Выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
 
@@ -207,6 +211,8 @@ class DataInteractionClient:
         try:
             response = requests.post(url, params=params, timeout=5)
             response.raise_for_status()
-            return response
         except requests.exceptions.RequestException as e:
             raise requests.exceptions.RequestException(f"Ошибка запроса: {e}") from e
+        error_response = response.json()["error"]
+        if error_response["id"] != 0:
+            raise ServerResponseErrorException(message= f"error_id: {error_response['id']} {error_response['message']}")
