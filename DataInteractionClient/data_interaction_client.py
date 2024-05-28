@@ -45,7 +45,7 @@ class DataInteractionClient:
         """
         self.base_url = base_url
 
-    def connect(self, data_source_id: str) -> dict:
+    def connect(self, data_source_id: str) -> List[Tag]:
         """
         Подключение к необходимому источнику данных и сбор метаданных источника.
 
@@ -53,7 +53,9 @@ class DataInteractionClient:
         data_source_id (str): Идентификатор источника данных для подключения.
 
         Возвращает:
-        dict: Ответ платформы в формате JSON.
+        ----------
+        List[Tag]
+            Список тегов.
 
         Ошибки, исключения:
         ValueError: Если data_source_id не является строкой.
@@ -64,10 +66,10 @@ class DataInteractionClient:
         url = f"{self.base_url}/smt/dataSources/connect"
         params = {"id": data_source_id}
         response = self._make_request(url, params)
-        if response["attributes"]["smtActive"]:
-            return response
-        else:
+        if not response["attributes"]["smtActive"]:
             raise DataSourceNotActiveException()
+        else:
+            return self._create_tags(response['tags'])
 
     def set_data(self, tags: List[Tag]) -> dict:
         """
@@ -89,7 +91,7 @@ class DataInteractionClient:
         response = self._make_request(url, {"data": data})
         return response.json()
 
-    def get_data(self, requests_data: dict) -> List[dict]:
+    def get_data(self, request_data: dict) -> List[dict]:
         """
         Получает исторические данные для указанных параметров.
 
@@ -108,20 +110,20 @@ class DataInteractionClient:
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
-            "from": requests_data['from_time'],
-            "to": requests_data['to_time'],
-            "tagId": requests_data['tag_id'],
-            "maxCount": requests_data['max_count'],
-            "timeStep": requests_data['time_step'],
-            "format": requests_data['format_param'],
-            "actual": requests_data['actual'],
-            "value": requests_data['value'],
+            "from": request_data['from_time'],
+            "to": request_data['to_time'],
+            "tagId": request_data['tag_id'],
+            "maxCount": request_data['max_count'],
+            "timeStep": request_data['time_step'],
+            "format": request_data['format_param'],
+            "actual": request_data['actual'],
+            "value": request_data['value'],
         }
         params = {k: v for k, v in params.items() if v is not None}
         response = self._make_request(url, {"params": params})
         return response['data']
 
-    def create_tags(self, tags_data: List[dict]) -> List[Tag]:
+    def _create_tags(self, tags_data: List[dict]) -> List[Tag]:
         """
         Создает экземпляры тегов из предоставленных данных.
 
