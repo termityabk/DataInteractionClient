@@ -4,7 +4,6 @@ import requests
 
 from exceptions.server_response_error_exception import ServerResponseErrorException
 from exceptions.data_source_not_active_exception import DataSourceNotActiveException
-from models.request_data import RequestData
 from models.tag import Tag
 
 
@@ -54,7 +53,7 @@ class DataInteractionClient:
         data_source_id (str): Идентификатор источника данных для подключения.
 
         Возвращает:
-        dict: Ответ сервера в формате JSON.
+        dict: Ответ платформы в формате JSON.
 
         Ошибки, исключения:
         ValueError: Если data_source_id не является строкой.
@@ -65,20 +64,20 @@ class DataInteractionClient:
         url = f"{self.base_url}/smt/dataSources/connect"
         params = {"id": data_source_id}
         response = self._make_request(url, params)
-        if response.json()["attributes"]["smtActive"]:
-            return response.json()
+        if response["attributes"]["smtActive"]:
+            return response
         else:
             raise DataSourceNotActiveException()
 
     def set_data(self, tags: List[Tag]) -> dict:
         """
-        Отправляет данные тегов на сервер.
+        Отправляет данные тегов на платформу.
 
         Параметры:
         tags (List[Tag]): Список объектов Tag. Каждый объект Tag имеет атрибуты 'id' и 'data'.
 
         Возвращает:
-        dict: Ответ сервера в формате JSON.
+        dict: Ответ платформы в формате JSON.
 
         Ошибки, исключения:
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
@@ -90,17 +89,17 @@ class DataInteractionClient:
         response = self._make_request(url, {"data": data})
         return response.json()
 
-    def get_data(self, requests_data: RequestData) -> dict:
+    def get_data(self, requests_data: dict) -> List[dict]:
         """
         Получает исторические данные для указанных параметров.
 
         Параметры:
         ----------
-        requests_data (RequestData): Объект, содержащий данные запроса.
+        requests_data (dict): Словарь, содержащий данные запроса.
 
         Возвращает:
         ----------
-        dict: Ответ сервера в формате JSON.
+        List[dict]: Массив данных соответствующих запросу.
 
         Ошибки, исключения:
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
@@ -109,18 +108,18 @@ class DataInteractionClient:
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
-            "from": requests_data.from_time,
-            "to": requests_data.to_time,
-            "tagId": requests_data.tag_id,
-            "maxCount": requests_data.max_count,
-            "timeStep": requests_data.time_step,
-            "format": requests_data.format_param,
-            "actual": requests_data.actual,
-            "value": requests_data.value,
+            "from": requests_data['from_time'],
+            "to": requests_data['to_time'],
+            "tagId": requests_data['tag_id'],
+            "maxCount": requests_data['max_count'],
+            "timeStep": requests_data['time_step'],
+            "format": requests_data['format_param'],
+            "actual": requests_data['actual'],
+            "value": requests_data['value'],
         }
         params = {k: v for k, v in params.items() if v is not None}
         response = self._make_request(url, {"params": params})
-        return response.json()
+        return response['data']
 
     def create_tags(self, tags_data: List[dict]) -> List[Tag]:
         """
@@ -149,7 +148,7 @@ class DataInteractionClient:
         value: Optional[Union[type, List[type]]] = None,
         format_param: Optional[bool] = None,
         actual: Optional[bool] = None,
-    ) -> RequestData:
+    ) -> dict:
         """
         Метод создания словаря с данными для запроса.
 
@@ -175,10 +174,9 @@ class DataInteractionClient:
         actual: bool, необязательно
             Возвращает только реально записанные в базу данных значения, неинтерполированные. По умолчанию — None.
 
-
         Возвращает:
         ----------
-        RequestData
+        dict
             Объект RequestData который содержит в себе атрибуты для запроса исторических данных.
         """
         request_data = {
@@ -191,22 +189,25 @@ class DataInteractionClient:
             "format_param": format_param,
             "actual": actual,
         }
-
-        return RequestData(request_data)
+        return request_data
 
     def _make_request(self, url: str, params: dict) -> requests.Response:
         """
         Выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
 
         Параметры:
+        ----------
         url (str): URL-адрес для отправки запроса.
         params (dict): параметры, которые нужно отправить вместе с запросом.
 
         Возвращает:
-        Requests.Response: ответ от сервера.
+        ----------
+        Requests.Response: ответ от платформы.
 
         Ошибки, исключения:
+        ----------
         Requests.Exceptions.RequestException: Если в запросе возникла ошибка.
+        ServerResponseErrorException: Если в ответе платформы значение error['id] отлично от 0.
         """
         try:
             response = requests.post(url, params=params, timeout=5)
@@ -216,3 +217,4 @@ class DataInteractionClient:
         error_response = response.json()["error"]
         if error_response["id"] != 0:
             raise ServerResponseErrorException(message= f"error_id: {error_response['id']} {error_response['message']}")
+        return response.json()
