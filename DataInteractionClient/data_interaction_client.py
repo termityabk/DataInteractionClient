@@ -71,7 +71,7 @@ class DataInteractionClient:
         else:
             return self._create_tags(response['tags'])
 
-    def set_data(self, tags: List[Tag]) -> dict:
+    def set_data(self, tags: List[Tag]) -> str:
         """
         Отправляет данные тегов на платформу.
 
@@ -79,7 +79,7 @@ class DataInteractionClient:
         tags (List[Tag]): Список объектов Tag. Каждый объект Tag имеет атрибуты 'id' и 'data'.
 
         Возвращает:
-        dict: Ответ платформы в формате JSON.
+        str: Сообщение об успешном добавлении данных.
 
         Ошибки, исключения:
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
@@ -88,8 +88,8 @@ class DataInteractionClient:
         """
         url = f"{self.base_url}/smt/data/set"
         data = [{"tagId": tag.id, "data": tag.data} for tag in tags]
-        response = self._make_request(url, {"data": data})
-        return response.json()
+        self._make_request(url, {"data": data})
+        return "Данные успешно добавлены"
 
     def get_data(self, request_data: dict) -> List[dict]:
         """
