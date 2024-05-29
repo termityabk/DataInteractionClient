@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 
 class Tag:
@@ -23,8 +23,10 @@ class Tag:
 
     Методы
     -------
-    update_data(new_data: list)
-        Обновляет данные тега.
+    add_data(x: Union[str, int], y: int, q: Optional[int] = 0)
+        Добавляет данные к тегу.
+    clear_data
+        Очищает данные тега.
     """
 
     def __init__(self, tag_id: Union[str, dict], attributes: dict, data: list = None):
@@ -56,18 +58,31 @@ class Tag:
         self.attributes = attributes
         self.data = data
 
-    def update(self, new_data: list):
+    def add_data(self, x: Union[str, int], y: int, q: Optional[int] = 0):
         """
-        Обновляет массив данных тега.
-
-        Параметры
-        ----------
-        new_data : list
-            Новые данные, которые будут заменять текущие данные тега.
+        Добавляет данные тега.
 
         Возвращает
         -------
         None
             Эта функция не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
         """
-        self.data = new_data
+        if self.data is None:
+            self.data = []
+        data = {
+            "x": x,
+            "y": y,
+            "q": q,
+        }
+        self.data.append(data)
+
+    def clear_data(self):
+        """
+        Очищает данные тега.
+
+        Возвращает
+        -------
+        None
+            Эта функция не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
+        """
+        self.data = None

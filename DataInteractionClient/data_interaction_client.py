@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 import requests
 
+from exceptions.no_data_to_send_exception import NoDataToSendException
 from exceptions.server_response_error_exception import ServerResponseErrorException
 from exceptions.data_source_not_active_exception import DataSourceNotActiveException
 from models.tag import Tag
@@ -69,7 +70,7 @@ class DataInteractionClient:
         if not response["attributes"]["smtActive"]:
             raise DataSourceNotActiveException()
         else:
-            return self._create_tags(response['tags'])
+            return self._create_tags(response["tags"])
 
     def set_data(self, tags: List[Tag]) -> str:
         """
@@ -87,9 +88,16 @@ class DataInteractionClient:
         https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
         """
         url = f"{self.base_url}/smt/data/set"
-        data = [{"tagId": tag.id, "data": tag.data} for tag in tags]
-        self._make_request(url, {"data": data})
-        return "Данные успешно добавлены"
+        data = [
+            {"tagId": tag.id, "data": tag.data} for tag in tags if tag.data is not None
+        ]
+        if not data:
+            raise NoDataToSendException()
+        else:
+            self._make_request(url, {"data": data})
+            for tag in tags:
+                tag.clear_data()
+            return "Данные успешно добавлены"
 
     def get_data(self, request_data: dict) -> List[dict]:
         """
@@ -110,18 +118,18 @@ class DataInteractionClient:
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
-            "from": request_data['from_time'],
-            "to": request_data['to_time'],
-            "tagId": request_data['tag_id'],
-            "maxCount": request_data['max_count'],
-            "timeStep": request_data['time_step'],
-            "format": request_data['format_param'],
-            "actual": request_data['actual'],
-            "value": request_data['value'],
+            "from": request_data["from_time"],
+            "to": request_data["to_time"],
+            "tagId": request_data["tag_id"],
+            "maxCount": request_data["max_count"],
+            "timeStep": request_data["time_step"],
+            "format": request_data["format_param"],
+            "actual": request_data["actual"],
+            "value": request_data["value"],
         }
         params = {k: v for k, v in params.items() if v is not None}
         response = self._make_request(url, {"params": params})
-        return response['data']
+        return response["data"]
 
     def _create_tags(self, tags_data: List[dict]) -> List[Tag]:
         """
@@ -218,5 +226,7 @@ class DataInteractionClient:
             raise requests.exceptions.RequestException(f"Ошибка запроса: {e}") from e
         error_response = response.json()["error"]
         if error_response["id"] != 0:
-            raise ServerResponseErrorException(message= f"error_id: {error_response['id']} {error_response['message']}")
+            raise ServerResponseErrorException(
+                message=f"error_id: {error_response['id']} {error_response['message']}"
+            )
         return response.json()
