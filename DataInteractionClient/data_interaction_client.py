@@ -1,14 +1,17 @@
 from typing import List, Optional, Union
 
 import requests
-
+from exceptions.data_source_not_active_exception import \
+    DataSourceNotActiveException
 from exceptions.no_data_to_send_exception import NoDataToSendException
-from exceptions.server_response_error_exception import ServerResponseErrorException
-from exceptions.data_source_not_active_exception import DataSourceNotActiveException
+from exceptions.server_response_error_exception import \
+    ServerResponseErrorException
 from models.tag import Tag
+from pydantic import BaseModel
+from pydantic.decorator import validate_arguments
 
 
-class DataInteractionClient:
+class DataInteractionClient(BaseModel):
     """
     Класс, представляющий клиент взаимодействия с источниками данных.
 
@@ -31,21 +34,9 @@ class DataInteractionClient:
         Выполняет HTTP-запрос к указанному URL с указанными параметрами.
     """
 
-    def __init__(self, base_url: str):
-        """
-        Инициализирует новый экземпляр класса Client.
+    base_url: str
 
-        Параметры:
-        ----------
-        base_url : str
-            Базовый URL платформы.
-
-        Возвращает:
-        -------
-        None
-        """
-        self.base_url = base_url
-
+    @validate_arguments
     def connect(self, data_source_id: str) -> List[Tag]:
         """
         Подключение к необходимому источнику данных и сбор метаданных источника.
@@ -62,8 +53,6 @@ class DataInteractionClient:
         ValueError: Если data_source_id не является строкой.
         DataSourceNotActiveException: Если источник данных неактивен.
         """
-        if not isinstance(data_source_id, str):
-            raise ValueError("data_source_id ожидаемый тип параметра [str]")
         url = f"{self.base_url}/smt/dataSources/connect"
         params = {"id": data_source_id}
         response = self._make_request(url, params)
@@ -72,6 +61,7 @@ class DataInteractionClient:
         else:
             return self._create_tags(response["tags"])
 
+    @validate_arguments
     def set_data(self, tags: List[Tag]) -> str:
         """
         Отправляет данные тегов на платформу.
@@ -99,6 +89,7 @@ class DataInteractionClient:
                 tag.clear_data()
             return "Данные успешно добавлены"
 
+    @validate_arguments
     def get_data(self, request_data: dict) -> List[dict]:
         """
         Получает исторические данные для указанных параметров.
@@ -131,6 +122,7 @@ class DataInteractionClient:
         response = self._make_request(url, {"params": params})
         return response["data"]
 
+    @validate_arguments
     def _create_tags(self, tags_data: List[dict]) -> List[Tag]:
         """
         Создает экземпляры тегов из предоставленных данных.
@@ -146,11 +138,12 @@ class DataInteractionClient:
         List[Tag]
             Список созданных экземпляров тегов.
         """
-        return [Tag(item["id"], item["attributes"]) for item in tags_data]
+        return [Tag(id=item["id"], attributes=item["attributes"]) for item in tags_data]
 
+    @validate_arguments
     def create_request_data(
         self,
-        tag_id: Union[str, List[str]],
+        tag_id: Union[str, dict, List[Union[str, dict]]],
         from_time: Optional[Union[str, int]] = None,
         to_time: Optional[Union[str, int]] = None,
         max_count: Optional[int] = None,
@@ -201,6 +194,7 @@ class DataInteractionClient:
         }
         return request_data
 
+    @validate_arguments
     def _make_request(self, url: str, params: dict) -> requests.Response:
         """
         Выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
