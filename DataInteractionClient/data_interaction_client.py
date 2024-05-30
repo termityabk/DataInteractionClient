@@ -24,14 +24,31 @@ class DataInteractionClient(BaseModel):
     -------
     connect(data_source_id: str)
         Подключается к источнику данных с указанным идентификатором.
-    set_data(tags: list)
+    set_data(tags: List[Tag])
         Отправляет данные для указанных тегов.
-    get_data(from_time, to_time, tag_id: list, max_count: int, time_step: int, value, format_param: bool = None, actual: bool = True)
+    get_data(tag_id: Union[str, dict, List[Union[str, dict]]],
+        from_time: Optional[Union[str, int]] = None,
+        to_time: Optional[Union[str, int]] = None,
+        max_count: Optional[int] = None,
+        time_step: Optional[int] = None,
+        value: Optional[Union[type, List[type]]] = None,
+        format_param: Optional[bool] = None,
+        actual: Optional[bool] = None,)
         Получает данные для указанных параметров.
-    create_tags(tags_data: list)
+    _create_tags(tags_data: List[dict])
         Создает экземпляры тегов из предоставленных данных.
     _make_request(url: str, params: dict)
         Выполняет HTTP-запрос к указанному URL с указанными параметрами.
+
+    Ошибки, исключения:
+    -------
+    pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
+        Подробнее см. https://docs.pydantic.dev/2.7/errors/validation_errors/
+    requests.exceptions.RequestException: Если во время запроса произошла ошибка.
+        Подробнее см. https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
+    DataSourceNotActiveException: Если источник данных неактивен.
+    NoDataToSendException: Если отсутствуют данные для запроса.
+    ServerResponseErrorException: Если в ответе платформы значение error['id'] отлично от 0.
     """
 
     base_url: str
@@ -50,7 +67,13 @@ class DataInteractionClient(BaseModel):
             Список тегов.
 
         Ошибки, исключения:
-        ValueError: Если data_source_id не является строкой.
+        -------
+        pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
+        Подробнее:
+        https://docs.pydantic.dev/2.7/errors/validation_errors/
+        requests.exceptions.RequestException: Если во время запроса произошла ошибка.
+        Подробнее:
+        https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
         DataSourceNotActiveException: Если источник данных неактивен.
         """
         url = f"{self.base_url}/smt/dataSources/connect"
@@ -67,15 +90,22 @@ class DataInteractionClient(BaseModel):
         Отправляет данные тегов на платформу.
 
         Параметры:
+        -------
         tags (List[Tag]): Список объектов Tag. Каждый объект Tag имеет атрибуты 'id' и 'data'.
 
         Возвращает:
+        -------
         str: Сообщение об успешном добавлении данных.
 
         Ошибки, исключения:
+        -------
+        pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
+        Подробнее:
+        https://docs.pydantic.dev/2.7/errors/validation_errors/
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
         Подробнее:
         https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
+        NoDataToSendException: Если отсутствуют данные для запроса.
         """
         url = f"{self.base_url}/smt/data/set"
         data = [
@@ -90,7 +120,17 @@ class DataInteractionClient(BaseModel):
             return "Данные успешно добавлены"
 
     @validate_arguments
-    def get_data(self, request_data: dict) -> List[dict]:
+    def get_data(
+        self,
+        tag_id: Union[str, dict, List[Union[str, dict]]],
+        from_time: Optional[Union[str, int]] = None,
+        to_time: Optional[Union[str, int]] = None,
+        max_count: Optional[int] = None,
+        time_step: Optional[int] = None,
+        value: Optional[Union[type, List[type]]] = None,
+        format_param: Optional[bool] = None,
+        actual: Optional[bool] = None,
+    ) -> List[dict]:
         """
         Получает исторические данные для указанных параметров.
 
@@ -103,20 +143,21 @@ class DataInteractionClient(BaseModel):
         List[dict]: Массив данных соответствующих запросу.
 
         Ошибки, исключения:
+        -------
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
         Подробнее:
         https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
-            "from": request_data["from_time"],
-            "to": request_data["to_time"],
-            "tagId": request_data["tag_id"],
-            "maxCount": request_data["max_count"],
-            "timeStep": request_data["time_step"],
-            "format": request_data["format_param"],
-            "actual": request_data["actual"],
-            "value": request_data["value"],
+            "from": from_time,
+            "to": to_time,
+            "tagId": tag_id,
+            "maxCount": max_count,
+            "timeStep": time_step,
+            "format": format_param,
+            "actual": actual,
+            "value": value,
         }
         params = {k: v for k, v in params.items() if v is not None}
         response = self._make_request(url, {"params": params})
@@ -139,60 +180,6 @@ class DataInteractionClient(BaseModel):
             Список созданных экземпляров тегов.
         """
         return [Tag(id=item["id"], attributes=item["attributes"]) for item in tags_data]
-
-    @validate_arguments
-    def create_request_data(
-        self,
-        tag_id: Union[str, dict, List[Union[str, dict]]],
-        from_time: Optional[Union[str, int]] = None,
-        to_time: Optional[Union[str, int]] = None,
-        max_count: Optional[int] = None,
-        time_step: Optional[int] = None,
-        value: Optional[Union[type, List[type]]] = None,
-        format_param: Optional[bool] = None,
-        actual: Optional[bool] = None,
-    ) -> dict:
-        """
-        Метод создания словаря с данными для запроса.
-
-        Параметры:
-        ----------
-        tag_id : Union[str, List[str]], обязательно
-            Массив идентификаторов тэгов, для которых запрашиваются данные.
-        from_time : Union[str, int], необязательно
-            Временная метка начала запрашиваемого периода. По умолчанию — None.
-        to_time : Union[str, int], необязательно
-            Временная метка конца запрашиваемого периода. По умолчанию — None.
-        max_count: int, необязательно
-            Максимальное количество данных в ответе. По умолчанию — None.
-        time_step: int, необязательно
-            Шаг времени между соседними возвращаемыми значениями, микросекунды. По умолчанию — None.
-        value: Union[type, List[type]], необязательно.
-            Фильтр по значению. По умолчанию — None.
-        format_param: bool, необязательно
-            Если ключ присутствует и не равен None, то метки времени
-            в ответе будут конвертированы в строки согласно формату ISO 8601, временная зона
-            будет соответствовать временной зоне, установленной на сервере, на котором работает
-            платформа. По умолчанию — None.
-        actual: bool, необязательно
-            Возвращает только реально записанные в базу данных значения, неинтерполированные. По умолчанию — None.
-
-        Возвращает:
-        ----------
-        dict
-            Объект RequestData который содержит в себе атрибуты для запроса исторических данных.
-        """
-        request_data = {
-            "tag_id": tag_id,
-            "from_time": from_time,
-            "to_time": to_time,
-            "max_count": max_count,
-            "time_step": time_step,
-            "value": value,
-            "format_param": format_param,
-            "actual": actual,
-        }
-        return request_data
 
     @validate_arguments
     def _make_request(self, url: str, params: dict) -> requests.Response:
