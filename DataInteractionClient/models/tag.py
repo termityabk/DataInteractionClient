@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
 from pydantic.decorator import validate_arguments
@@ -32,9 +32,18 @@ class Tag(BaseModel):
         Очищает данные тега.
     """
 
-    id: Union[str, dict]
+    id: Union[str, Dict[str, str]]
     attributes: dict
     data: List[dict] = None
+
+    @validate_arguments
+    def __init__(self, **kwargs: Union[str, dict]) -> None:
+        if isinstance(kwargs.get("id"), dict):
+            if set(kwargs["id"].keys()) != {"tagName", "parentObjectId"}:
+                raise ValueError(
+                    "Атрибут 'id' должен содержать ключи 'tagName' и 'parentObjectId'"
+                )
+        super().__init__(**kwargs)
 
     @validate_arguments
     def add_data(self, x: Union[str, int], y: int, q: Optional[int] = 0):
