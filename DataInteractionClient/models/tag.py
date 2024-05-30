@@ -30,11 +30,15 @@ class Tag(BaseModel):
         Добавляет данные к тегу.
     clear_data
         Очищает данные тега.
+
+    Ошибки, исключения:
+    -------
+    ValueError: Если структура id отличается от ожидаемой.
     """
 
     id: Union[str, Dict[str, str]]
     attributes: dict
-    data: List[dict] = None
+    data: Optional[List[dict]] = None
 
     @validate_arguments
     def __init__(self, **kwargs: Union[str, dict]) -> None:

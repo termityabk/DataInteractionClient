@@ -136,7 +136,26 @@ class DataInteractionClient(BaseModel):
 
         Параметры:
         ----------
-        requests_data (dict): Словарь, содержащий данные запроса.
+        Параметры:
+        tag_id : Union[str, List[str]]
+            Массив идентификаторов тэгов, для которых запрашиваются данные.
+        from_time : Optional[Union[str, int]]
+            Временная метка начала запрашиваемого периода. По умолчанию — None.
+        to_time : Optional[Union[str, int]]
+            Временная метка конца запрашиваемого периода. По умолчанию — None.
+        Optional[int] = None,
+            Максимальное количество данных в ответе. По умолчанию — None.
+        time_step: Optional[int]
+            Шаг времени между соседними возвращаемыми значениями, микросекунды. По умолчанию — None.
+        value: Optional[Union[type, List[type]]]
+            Фильтр по значению. По умолчанию — None.
+        format_param: Optional[bool]
+            Если ключ присутствует и не равен None, то метки времени
+            в ответе будут конвертированы в строки согласно формату ISO 8601, временная зона
+            будет соответствовать временной зоне, установленной на сервере, на котором работает
+            платформа. По умолчанию — None.
+        actual: Optional[bool]
+            Возвращает только реально записанные в базу данных значения, неинтерполированные. По умолчанию — None.
 
         Возвращает:
         ----------
@@ -144,9 +163,11 @@ class DataInteractionClient(BaseModel):
 
         Ошибки, исключения:
         -------
+        pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
+        Подробнее:
+        https://docs.pydantic.dev/2.7/errors/validation_errors/
         requests.exceptions.RequestException: Если во время запроса произошла ошибка.
         Подробнее:
-        https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
