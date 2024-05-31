@@ -35,7 +35,7 @@ class DataInteractionClient(BaseModel):
         format_param: Optional[bool] = None,
         actual: Optional[bool] = None,)
         Получает данные для указанных параметров.
-    _create_tags(tags_data: List[dict])
+    _make_tags_list(tags_data: List[dict])
         Создает экземпляры тегов из предоставленных данных.
     _make_request(url: str, params: dict)
         Выполняет HTTP-запрос к указанному URL с указанными параметрами.
@@ -82,7 +82,7 @@ class DataInteractionClient(BaseModel):
         if not response["attributes"]["smtActive"]:
             raise DataSourceNotActiveException()
         else:
-            return self._create_tags(response["tags"])
+            return self._make_tags_list(response["tags"])
 
     @validate_arguments
     def set_data(self, tags: List[Tag]) -> str:
@@ -185,9 +185,9 @@ class DataInteractionClient(BaseModel):
         return response["data"]
 
     @validate_arguments
-    def _create_tags(self, tags_data: List[dict]) -> List[Tag]:
+    def _make_tags_list(self, tags_data: List[dict]) -> List[Tag]:
         """
-        Создает экземпляры тегов из предоставленных данных.
+        Создает список тегов из предоставленных данных.
 
         Параметры:
         ----------
