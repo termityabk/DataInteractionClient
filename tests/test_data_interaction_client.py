@@ -135,11 +135,9 @@ class TestDataInteractionClient(unittest.TestCase):
 
     def test_connect_server_error_exceptions(self):
         client = DataInteractionClient(base_url="https://example.com")
-        mock_response = {"error": {"id": 0, "message": "error"}}
+        mock_response = {"error": {"id": 1, "message": "error"}}
         with patch("requests.post") as mock_post:
-            mock_post.side_effect = ServerResponseErrorException(
-                message="Сервер вернул внутреннюю ошибку: error"
-            )
+            mock_post.return_value.json.return_value = mock_response
             with self.assertRaises(ServerResponseErrorException):
                 client.connect(data_source_id="valid_id")
 
