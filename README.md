@@ -43,7 +43,7 @@ tags[0].clear_data()
 - Получение данных по запросу коннектора.
 
 ```python
-get = client.get_data(tag_id='fds', from_time='100', to_time=1000000, max_count=100, time_step=100000, format_param=True)
+client.get_data(tag_id='fds', from_time='100', to_time=1000000, max_count=100, time_step=100000, format_param=True)
     # Получение данных с платформы, используя метод клиента.
     # Принимает данные для запроса.
     # Возвращает данные в виде списка словарей.
