@@ -1,6 +1,7 @@
 # Зависимости
-requests==2.31.0  # https://pypi.org/project/requests/
+httpx==0.27.0  # https://pypi.org/project/httpx/
 pydantic==2.7.2  # https://pypi.org/project/pydantic/
+asyncio==3.4.3 # https://pypi.org/project/asyncio/
 
 # Тестирование
 coverage==7.5.2 # https://pypi.org/project/coverage/
