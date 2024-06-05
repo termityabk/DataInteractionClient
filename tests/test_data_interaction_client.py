@@ -5,7 +5,7 @@ sys.path.append("DataInteractionClient/")
 import unittest
 from unittest.mock import patch
 
-import requests
+import httpx
 from data_interaction_client import DataInteractionClient
 from exceptions.data_source_not_active_exception import \
     DataSourceNotActiveException
@@ -37,7 +37,7 @@ class TestDataInteractionClient(unittest.TestCase):
                 }
             ],
         }
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             tags = client.connect(data_source_id="valid_id")
             assert len(tags) == 1
@@ -53,7 +53,7 @@ class TestDataInteractionClient(unittest.TestCase):
                 "smtJsonConfigString": "some json string with connect parameters",
             },
         }
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             with self.assertRaises(DataSourceNotActiveException):
                 client.connect(data_source_id="45345434")
@@ -68,7 +68,7 @@ class TestDataInteractionClient(unittest.TestCase):
             )
         ]
         tags[0].add_data(x="2018-06-26 17:16:00", q=140, y=13)
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             client.set_data(tags=tags)
             assert mock_post.called
@@ -88,7 +88,7 @@ class TestDataInteractionClient(unittest.TestCase):
                 attributes={"smtTagMaxDev": 1, "smtTagSource": "json config string"},
             )
         ]
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             with self.assertRaises(NoDataToSendException):
                 client.set_data(tags=tags)
             assert not mock_post.called
@@ -105,13 +105,13 @@ class TestDataInteractionClient(unittest.TestCase):
                 }
             ],
         }
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             data = client.get_data(
                 tag_id="tag1", from_time=1, to_time=3, max_count=10, time_step=1
             )
             assert mock_post.called
-            assert mock_post.call_args[1]["params"]["params"] == {
+            assert mock_post.call_args[1]["params"] == {
                 "from": 1,
                 "to": 3,
                 "tagId": "tag1",
@@ -128,19 +128,45 @@ class TestDataInteractionClient(unittest.TestCase):
 
     def test_connect_request_exception(self):
         client = DataInteractionClient(base_url="https://example.com")
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = requests.exceptions.RequestException()
-            with self.assertRaises(requests.exceptions.RequestException):
+        with patch("httpx.post") as mock_post:
+            mock_post.side_effect = httpx.RequestError(message='error')
+            with self.assertRaises(httpx.RequestError):
                 client.connect(data_source_id="valid_id")
 
     def test_connect_server_error_exceptions(self):
         client = DataInteractionClient(base_url="https://example.com")
         mock_response = {"error": {"id": 1, "message": "error"}}
-        with patch("requests.post") as mock_post:
+        with patch("httpx.post") as mock_post:
             mock_post.return_value.json.return_value = mock_response
             with self.assertRaises(ServerResponseErrorException):
                 client.connect(data_source_id="valid_id")
 
+    async def test_async_connect_valid_id(self):
+        client = DataInteractionClient(base_url="https://example.com", synchronous=False)
+        mock_response = {
+            "error": {"id": 0},
+            "attributes": {
+                "smtActive": True,
+                "smtJsonConfigString": "some json string with connect parameters",
+            },
+            "tags": [
+                {
+                    "id": "tagId",
+                    "attributes": {
+                        "smtTagValueTypeCode": 1,
+                        "smtTagValueScale": 1,
+                        "smtTagMaxDev": 1,
+                        "smtTagSource": "json config string",
+                    },
+                }
+            ],
+        }
+        with patch("httpx.post") as mock_post:
+            mock_post.return_value.json.return_value = mock_response
+            tags = await client.connect(data_source_id="valid_id")
+            assert len(tags) == 1
+            assert tags[0].id == "tagId"
+            assert tags[0].attributes["smtTagValueTypeCode"] == 1
 
 if __name__ == "__main__":
     unittest.main()

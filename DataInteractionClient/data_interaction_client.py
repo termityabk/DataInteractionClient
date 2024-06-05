@@ -1,11 +1,10 @@
+import asyncio
 from typing import List, Optional, Union
 
-import requests
-from exceptions.data_source_not_active_exception import \
-    DataSourceNotActiveException
+import httpx
+from exceptions.data_source_not_active_exception import DataSourceNotActiveException
 from exceptions.no_data_to_send_exception import NoDataToSendException
-from exceptions.server_response_error_exception import \
-    ServerResponseErrorException
+from exceptions.server_response_error_exception import ServerResponseErrorException
 from models.tag import Tag
 from pydantic import BaseModel
 from pydantic.decorator import validate_arguments
@@ -39,19 +38,24 @@ class DataInteractionClient(BaseModel):
         Создает экземпляры тегов из предоставленных данных.
     _make_request(url: str, params: dict)
         Выполняет HTTP-запрос к указанному URL с указанными параметрами.
+    _async_make_request(url: str, params: dict) -> httpx.Response
+        Асинхронно выполняет HTTP-запрос к указанному URL-адресу с предоставленными параметрами.
 
     Ошибки, исключения:
     -------
     pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
         Подробнее см. https://docs.pydantic.dev/2.7/errors/validation_errors/
-    requests.exceptions.RequestException: Если во время запроса произошла ошибка.
-        Подробнее см. https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
+    httpx.HTTPStatusError: Если в запросе есть ошибка.
+        Подробнее см. https://www.python-httpx.org/exceptions/
+    httpx.RequestError: Если при выполнении запроса произошла ошибка.
+        Подробнее см. https://www.python-httpx.org/exceptions/
     DataSourceNotActiveException: Если источник данных неактивен.
     NoDataToSendException: Если отсутствуют данные для запроса.
     ServerResponseErrorException: Если в ответе платформы значение error['id'] отлично от 0.
     """
 
     base_url: str
+    synchronous: bool = True
 
     @validate_arguments
     def connect(self, data_source_id: str) -> List[Tag]:
@@ -69,16 +73,19 @@ class DataInteractionClient(BaseModel):
         Ошибки, исключения:
         -------
         pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
-        Подробнее:
-        https://docs.pydantic.dev/2.7/errors/validation_errors/
-        requests.exceptions.RequestException: Если во время запроса произошла ошибка.
-        Подробнее:
-        https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
+            Подробнее см. https://docs.pydantic.dev/2.7/errors/validation_errors/
+        httpx.HTTPStatusError: Если в запросе есть ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
+        httpx.RequestError: Если при выполнении запроса произошла ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
         DataSourceNotActiveException: Если источник данных неактивен.
         """
         url = f"{self.base_url}/smt/dataSources/connect"
         params = {"id": data_source_id}
-        response = self._make_request(url, params)
+        if self.synchronous:
+            response = self._make_request(url, params)
+        else:
+            response = asyncio.run(self._async_make_request(url, params))
         if not response["attributes"]["smtActive"]:
             raise DataSourceNotActiveException()
         else:
@@ -100,12 +107,13 @@ class DataInteractionClient(BaseModel):
         Ошибки, исключения:
         -------
         pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
-        Подробнее:
-        https://docs.pydantic.dev/2.7/errors/validation_errors/
-        requests.exceptions.RequestException: Если во время запроса произошла ошибка.
-        Подробнее:
-        https://requests.readthedocs.io/en/latest/_modules/requests/exceptions/
+            Подробнее см. https://docs.pydantic.dev/2.7/errors/validation_errors/
+        httpx.HTTPStatusError: Если в запросе есть ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
+        httpx.RequestError: Если при выполнении запроса произошла ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
         NoDataToSendException: Если отсутствуют данные для запроса.
+        ServerResponseErrorException: Если в ответе платформы значение error['id'] отлично от 0.
         """
         url = f"{self.base_url}/smt/data/set"
         data = [
@@ -113,11 +121,13 @@ class DataInteractionClient(BaseModel):
         ]
         if not data:
             raise NoDataToSendException()
-        else:
+        elif self.synchronous:
             self._make_request(url, {"data": data})
-            for tag in tags:
-                tag.clear_data()
-            return "Данные успешно добавлены"
+        else:
+            asyncio.run(self._async_make_request(url, {"data": data}))
+        for tag in tags:
+            tag.clear_data()
+        return "Данные успешно добавлены"
 
     @validate_arguments
     def get_data(
@@ -164,10 +174,12 @@ class DataInteractionClient(BaseModel):
         Ошибки, исключения:
         -------
         pydantic_core._pydantic_core.ValidationError: При несоответствии типов атрибутов.
-        Подробнее:
-        https://docs.pydantic.dev/2.7/errors/validation_errors/
-        requests.exceptions.RequestException: Если во время запроса произошла ошибка.
-        Подробнее:
+            Подробнее см. https://docs.pydantic.dev/2.7/errors/validation_errors/
+        httpx.HTTPStatusError: Если в запросе есть ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
+        httpx.RequestError: Если при выполнении запроса произошла ошибка.
+            Подробнее см. https://www.python-httpx.org/exceptions/
+        ServerResponseErrorException: Если в ответе платформы значение error['id'] отлично от 0.
         """
         url = f"{self.base_url}/smt/data/get"
         params = {
@@ -181,7 +193,10 @@ class DataInteractionClient(BaseModel):
             "value": value,
         }
         params = {k: v for k, v in params.items() if v is not None}
-        response = self._make_request(url, {"params": params})
+        if self.synchronous:
+            response = self._make_request(url, params)
+        else:
+            response = asyncio.run(self._async_make_request(url, {"params": params}))
         return response["data"]
 
     @validate_arguments
@@ -203,9 +218,9 @@ class DataInteractionClient(BaseModel):
         return [Tag(id=item["id"], attributes=item["attributes"]) for item in tags_data]
 
     @validate_arguments
-    def _make_request(self, url: str, params: dict) -> requests.Response:
+    def _make_request(self, url: str, params: dict) -> httpx.Response:
         """
-        Выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
+        Выполняет синхронный POST-запрос по указанному URL-адресу с предоставленными параметрами.
 
         Параметры:
         ----------
@@ -214,21 +229,57 @@ class DataInteractionClient(BaseModel):
 
         Возвращает:
         ----------
-        Requests.Response: ответ от платформы.
+        httpx.Response: ответ от платформы.
 
         Ошибки, исключения:
         ----------
-        Requests.Exceptions.RequestException: Если в запросе возникла ошибка.
+        httpx.HTTPStatusError: Если в запросе есть ошибка.
+        httpx.RequestError: Если при выполнении запроса произошла ошибка.
         ServerResponseErrorException: Если в ответе платформы значение error['id] отлично от 0.
         """
         try:
-            response = requests.post(url, params=params, timeout=5)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            raise requests.exceptions.RequestException(f"Ошибка запроса: {e}") from e
+            response = httpx.post(url, params=params, timeout=5)
+        except httpx.HTTPStatusError as e:
+            raise httpx.HTTPStatusError(f"Ошибка запроса: {e}") from e
+        except httpx.RequestError as e:
+            raise httpx.RequestError(f"Ошибка при выполнении запроса: {e}")
         error_response = response.json()["error"]
         if error_response["id"] != 0:
             raise ServerResponseErrorException(
                 message=f"error_id: {error_response['id']} {error_response['message']}"
             )
         return response.json()
+
+    @validate_arguments
+    async def _async_make_request(self, url: str, params: dict) -> httpx.Response:
+        """
+        Асинхронно выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
+
+        Параметры:
+        ----------
+        url (str): URL-адрес для отправки запроса.
+        params (dict): параметры, которые нужно отправить вместе с запросом.
+
+        Возвращает:
+        ----------
+        httpx.Response: ответ от платформы.
+
+        Ошибки, исключения:
+        ----------
+        httpx.HTTPStatusError: Если в запросе есть ошибка.
+        httpx.RequestError: Если при выполнении запроса произошла ошибка.
+        ServerResponseErrorException: Если в ответе платформы значение error['id] отлично от 0.
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(url, params=params, timeout=5)
+            except httpx.HTTPStatusError as e:
+                raise httpx.HTTPStatusError(f"Ошибка запроса: {e}") from e
+            except httpx.RequestError as e:
+                raise httpx.RequestError(f"Ошибка при выполнении запроса: {e}")
+            error_response = response.json()["error"]
+            if error_response["id"] != 0:
+                raise ServerResponseErrorException(
+                    message=f"error_id: {error_response['id']} {error_response['message']}"
+                )
+            return response.json()
