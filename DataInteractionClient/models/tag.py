@@ -49,6 +49,7 @@ class Tag(BaseModel):
                     "Атрибут 'id' должен содержать ключи 'tagName' и 'parentObjectId'"
                 )
         super().__init__(**kwargs)
+        self._lock = threading.Lock()
 
     def add_data(self, x: Union[str, int], y: int, q: Optional[int] = 0) -> None:
         """
@@ -59,7 +60,6 @@ class Tag(BaseModel):
         None
             Не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
         """
-        self._lock = threading.Lock()
         with self._lock:
             if self.data is None:
                 self.data = []
@@ -75,6 +75,5 @@ class Tag(BaseModel):
         None
             Не возвращает никаких значений. Он изменяет атрибут 'data' экземпляра класса.
         """
-        self._lock = threading.Lock()
         with self._lock:
             self.data = None
