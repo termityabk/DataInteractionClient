@@ -1,11 +1,11 @@
 import sys
-
 sys.path.append("DataInteractionClient/")
-
 import unittest
 from unittest.mock import patch
 
 import httpx
+from pydantic_core._pydantic_core import ValidationError
+
 from data_interaction_client import DataInteractionClient
 from exceptions.data_source_not_active_exception import \
     DataSourceNotActiveException
@@ -13,7 +13,6 @@ from exceptions.no_data_to_send_exception import NoDataToSendException
 from exceptions.server_response_error_exception import \
     ServerResponseErrorException
 from models.tag import Tag
-from pydantic_core._pydantic_core import ValidationError
 
 
 class TestDataInteractionClient(unittest.TestCase):
@@ -111,7 +110,13 @@ class TestDataInteractionClient(unittest.TestCase):
                 tag_id="tag1", from_time=1, to_time=3, max_count=10, time_step=1
             )
             assert mock_post.called
-            assert mock_post.call_args[1]["params"]["params"] == {"from": 1, "to": 3, "tagId": "tag1", "maxCount": 10, "timeStep": 1,}
+            assert mock_post.call_args[1]["params"]["params"] == {
+                "from": 1,
+                "to": 3,
+                "tagId": "tag1",
+                "maxCount": 10,
+                "timeStep": 1,
+            }
             assert data == [
                 {
                     "tagId": "tag id",
@@ -123,7 +128,7 @@ class TestDataInteractionClient(unittest.TestCase):
     def test_connect_request_exception(self):
         client = DataInteractionClient(base_url="https://example.com")
         with patch("httpx.post") as mock_post:
-            mock_post.side_effect = httpx.RequestError(message='error')
+            mock_post.side_effect = httpx.RequestError(message="error")
             with self.assertRaises(httpx.RequestError):
                 client.connect(data_source_id="valid_id")
 
@@ -140,6 +145,7 @@ class TestDataInteractionClient(unittest.TestCase):
         with self.assertRaises(httpx.RequestError) as e:
             raise httpx.RequestError(error_message)
         self.assertEqual(str(e.exception), f"{error_message}")
+
 
 if __name__ == "__main__":
     unittest.main()

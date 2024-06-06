@@ -1,14 +1,15 @@
 from typing import List, Optional, Union
 
 import httpx
+from pydantic import BaseModel
+from pydantic.decorator import validate_arguments
+
 from exceptions.data_source_not_active_exception import \
     DataSourceNotActiveException
 from exceptions.no_data_to_send_exception import NoDataToSendException
 from exceptions.server_response_error_exception import \
     ServerResponseErrorException
 from models.tag import Tag
-from pydantic import BaseModel
-from pydantic.decorator import validate_arguments
 
 
 class DataInteractionClient(BaseModel):
@@ -99,7 +100,7 @@ class DataInteractionClient(BaseModel):
 
         Возвращает:
         -------
-        None 
+        None
         При успешном добавлении данных ничего не возвращает.
 
         Ошибки, исключения:
