@@ -1,10 +1,11 @@
-import asyncio
 from typing import List, Optional, Union
 
 import httpx
-from exceptions.data_source_not_active_exception import DataSourceNotActiveException
+from exceptions.data_source_not_active_exception import \
+    DataSourceNotActiveException
 from exceptions.no_data_to_send_exception import NoDataToSendException
-from exceptions.server_response_error_exception import ServerResponseErrorException
+from exceptions.server_response_error_exception import \
+    ServerResponseErrorException
 from models.tag import Tag
 from pydantic import BaseModel
 from pydantic.decorator import validate_arguments
@@ -55,7 +56,6 @@ class DataInteractionClient(BaseModel):
     """
 
     base_url: str
-    synchronous: bool = True
 
     @validate_arguments
     def connect(self, data_source_id: str) -> List[Tag]:
@@ -82,10 +82,7 @@ class DataInteractionClient(BaseModel):
         """
         url = f"{self.base_url}/smt/dataSources/connect"
         params = {"id": data_source_id}
-        if self.synchronous:
-            response = self._make_request(url, params)
-        else:
-            response = asyncio.run(self._async_make_request(url, params))
+        response = self._make_request(url, params)
         if not response["attributes"]["smtActive"]:
             raise DataSourceNotActiveException()
         else:
@@ -121,13 +118,11 @@ class DataInteractionClient(BaseModel):
         ]
         if not data:
             raise NoDataToSendException()
-        elif self.synchronous:
-            self._make_request(url, {"data": data})
         else:
-            asyncio.run(self._async_make_request(url, {"data": data}))
-        for tag in tags:
-            tag.clear_data()
-        return "Данные успешно добавлены"
+            self._make_request(url, {"data": data})
+            for tag in tags:
+                tag.clear_data()
+            return "Данные успешно добавлены"
 
     @validate_arguments
     def get_data(
@@ -193,10 +188,7 @@ class DataInteractionClient(BaseModel):
             "value": value,
         }
         params = {k: v for k, v in params.items() if v is not None}
-        if self.synchronous:
-            response = self._make_request(url, params)
-        else:
-            response = asyncio.run(self._async_make_request(url, {"params": params}))
+        response = self._make_request(url, {"params": params})
         return response["data"]
 
     @validate_arguments
@@ -239,6 +231,7 @@ class DataInteractionClient(BaseModel):
         """
         try:
             response = httpx.post(url, params=params, timeout=5)
+            response.raise_for_status()
         except httpx.HTTPStatusError as e:
             raise httpx.HTTPStatusError(f"Ошибка запроса: {e}") from e
         except httpx.RequestError as e:
@@ -249,37 +242,3 @@ class DataInteractionClient(BaseModel):
                 message=f"error_id: {error_response['id']} {error_response['message']}"
             )
         return response.json()
-
-    @validate_arguments
-    async def _async_make_request(self, url: str, params: dict) -> httpx.Response:
-        """
-        Асинхронно выполняет POST-запрос по указанному URL-адресу с предоставленными параметрами.
-
-        Параметры:
-        ----------
-        url (str): URL-адрес для отправки запроса.
-        params (dict): параметры, которые нужно отправить вместе с запросом.
-
-        Возвращает:
-        ----------
-        httpx.Response: ответ от платформы.
-
-        Ошибки, исключения:
-        ----------
-        httpx.HTTPStatusError: Если в запросе есть ошибка.
-        httpx.RequestError: Если при выполнении запроса произошла ошибка.
-        ServerResponseErrorException: Если в ответе платформы значение error['id] отлично от 0.
-        """
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(url, params=params, timeout=5)
-            except httpx.HTTPStatusError as e:
-                raise httpx.HTTPStatusError(f"Ошибка запроса: {e}") from e
-            except httpx.RequestError as e:
-                raise httpx.RequestError(f"Ошибка при выполнении запроса: {e}")
-            error_response = response.json()["error"]
-            if error_response["id"] != 0:
-                raise ServerResponseErrorException(
-                    message=f"error_id: {error_response['id']} {error_response['message']}"
-                )
-            return response.json()

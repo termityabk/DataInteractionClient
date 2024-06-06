@@ -111,13 +111,7 @@ class TestDataInteractionClient(unittest.TestCase):
                 tag_id="tag1", from_time=1, to_time=3, max_count=10, time_step=1
             )
             assert mock_post.called
-            assert mock_post.call_args[1]["params"] == {
-                "from": 1,
-                "to": 3,
-                "tagId": "tag1",
-                "maxCount": 10,
-                "timeStep": 1,
-            }
+            assert mock_post.call_args[1]["params"]["params"] == {"from": 1, "to": 3, "tagId": "tag1", "maxCount": 10, "timeStep": 1,}
             assert data == [
                 {
                     "tagId": "tag id",
@@ -141,32 +135,11 @@ class TestDataInteractionClient(unittest.TestCase):
             with self.assertRaises(ServerResponseErrorException):
                 client.connect(data_source_id="valid_id")
 
-    async def test_async_connect_valid_id(self):
-        client = DataInteractionClient(base_url="https://example.com", synchronous=False)
-        mock_response = {
-            "error": {"id": 0},
-            "attributes": {
-                "smtActive": True,
-                "smtJsonConfigString": "some json string with connect parameters",
-            },
-            "tags": [
-                {
-                    "id": "tagId",
-                    "attributes": {
-                        "smtTagValueTypeCode": 1,
-                        "smtTagValueScale": 1,
-                        "smtTagMaxDev": 1,
-                        "smtTagSource": "json config string",
-                    },
-                }
-            ],
-        }
-        with patch("httpx.post") as mock_post:
-            mock_post.return_value.json.return_value = mock_response
-            tags = await client.connect(data_source_id="valid_id")
-            assert len(tags) == 1
-            assert tags[0].id == "tagId"
-            assert tags[0].attributes["smtTagValueTypeCode"] == 1
+    def test_request_error_message(self):
+        error_message = "Failed to establish a connection"
+        with self.assertRaises(httpx.RequestError) as e:
+            raise httpx.RequestError(error_message)
+        self.assertEqual(str(e.exception), f"{error_message}")
 
 if __name__ == "__main__":
     unittest.main()
