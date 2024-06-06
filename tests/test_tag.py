@@ -39,14 +39,6 @@ class TestTag(unittest.TestCase):
         with self.assertRaises(ValueError):
             Tag(id=tag_id, attributes=attributes)
 
-    def test_add_data_empty_list(self):
-        tag_id = "tag5"
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        tag = Tag(id=tag_id, attributes=attributes)
-
-        with self.assertRaises(ValidationError):
-            tag.add_data()
-
     def test_clear_data(self):
         tag_id = "tag6"
         attributes = {"attr1": "value1", "attr2": "value2"}

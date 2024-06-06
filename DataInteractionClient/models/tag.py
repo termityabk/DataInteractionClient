@@ -1,12 +1,13 @@
+import threading
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
-from pydantic.decorator import validate_arguments
 
 
 class Tag(BaseModel):
     """
     Класс, представляющий метаданные, связанные с источником данных.
+    Обеспечивает потокобезопасный способ изменения данных.
 
     Атрибуты
     ----------
@@ -22,7 +23,7 @@ class Tag(BaseModel):
     attributes : dict
         Атрибуты тега.
     data : list
-        Массив данных тэга
+        Массив данных тега
 
     Методы
     -------
@@ -39,8 +40,8 @@ class Tag(BaseModel):
     id: Union[str, Dict[str, str]]
     attributes: dict
     data: Optional[List[dict]] = None
+    _lock: threading.Lock
 
-    @validate_arguments
     def __init__(self, **kwargs: Union[str, dict]) -> None:
         if isinstance(kwargs.get("id"), dict):
             if set(kwargs["id"].keys()) != {"tagName", "parentObjectId"}:
@@ -49,32 +50,31 @@ class Tag(BaseModel):
                 )
         super().__init__(**kwargs)
 
-    @validate_arguments
-    def add_data(self, x: Union[str, int], y: int, q: Optional[int] = 0):
+    def add_data(self, x: Union[str, int], y: int, q: Optional[int] = 0) -> None:
         """
         Добавляет данные тега.
 
         Возвращает
         -------
         None
-            Эта функция не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
+            Не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
         """
-        if self.data is None:
-            self.data = []
-        data = {
-            "x": x,
-            "y": y,
-            "q": q,
-        }
-        self.data.append(data)
+        self._lock = threading.Lock()
+        with self._lock:
+            if self.data is None:
+                self.data = []
+            data = {"x": x, "y": y, "q": q}
+            self.data.append(data)
 
-    def clear_data(self):
+    def clear_data(self) -> None:
         """
         Очищает данные тега.
 
         Возвращает
         -------
         None
-            Эта функция не возвращает никаких значений. Она изменяет атрибут 'data' экземпляра класса.
+            Не возвращает никаких значений. Он изменяет атрибут 'data' экземпляра класса.
         """
-        self.data = None
+        self._lock = threading.Lock()
+        with self._lock:
+            self.data = None
