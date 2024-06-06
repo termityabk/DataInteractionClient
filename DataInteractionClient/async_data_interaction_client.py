@@ -99,7 +99,8 @@ class AsyncDataInteractionClient(BaseModel):
 
         Возвращает:
         -------
-        str: Сообщение об успешном добавлении данных.
+        None 
+        При успешном добавлении данных ничего не возвращает.
 
         Ошибки, исключения:
         -------
@@ -122,7 +123,6 @@ class AsyncDataInteractionClient(BaseModel):
             await self._make_request(url, {"data": data})
             for tag in tags:
                 tag.clear_data()
-            return "Данные успешно добавлены"
 
     @validate_arguments
     async def get_data(
