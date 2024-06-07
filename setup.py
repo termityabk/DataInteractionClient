@@ -7,7 +7,7 @@ def get_long_description():
 setup(
     name='data_interaction_client',
     version='1.0.0',
-    description='Python data interaction client package that provides a client connector for interacting with a platform.',
+    description='Клиент взаимодействия с источниками данных Python пакет, который предоставляет коннекторам клиент для взаимодействия с платформой.',
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author='Быков Дмитрий',
