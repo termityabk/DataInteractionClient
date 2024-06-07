@@ -73,8 +73,8 @@ python -m pydoc -b
 
 ```bash
 # Запуск тестов
-coverage run -m unittest discover
+pytest tests/
 
 # Отчёт о тестовом покрытии
-coverage report -m
+pytest --cov=tests/
 ```

@@ -1,51 +1,49 @@
 import sys
-sys.path.append("DataInteractionClient/models/")
-import unittest
+sys.path.append("DataInteractionClient/")
 
-from pydantic_core._pydantic_core import ValidationError
+import pytest
 
-from tag import Tag
-
-
-class TestTag(unittest.TestCase):
-    def test_init_with_dict_id(self):
-        tag_id = {"tagName": "tag1", "parentObjectId": "obj1"}
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        tag = Tag(id=tag_id, attributes=attributes)
-        self.assertEqual(tag.id["tagName"], "tag1")
-        self.assertEqual(tag.id["parentObjectId"], "obj1")
-        self.assertEqual(tag.attributes, attributes)
-        self.assertIsNone(tag.data)
-
-    def test_init_with_str_id(self):
-        tag_id = "tag2"
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        tag = Tag(id=tag_id, attributes=attributes)
-        self.assertEqual(tag.id, tag_id)
-        self.assertEqual(tag.attributes, attributes)
-        self.assertIsNone(tag.data)
-
-    def test_add_data(self):
-        tag_id = "tag4"
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        tag = Tag(id=tag_id, attributes=attributes)
-        tag.add_data(x="563", y=1, q=0)
-        self.assertEqual(tag.data[-1], {"x": "563", "y": 1, "q": 0})
-
-    def test_init_with_dict_id_missing_keys(self):
-        tag_id = {"tagName": "tag3"}
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        with self.assertRaises(ValueError):
-            Tag(id=tag_id, attributes=attributes)
-
-    def test_clear_data(self):
-        tag_id = "tag6"
-        attributes = {"attr1": "value1", "attr2": "value2"}
-        tag = Tag(id=tag_id, attributes=attributes)
-        tag.add_data(x="563", y=1, q=0)
-        tag.clear_data()
-        self.assertEqual(tag.data, None)
+from models.tag import Tag
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_init_with_dict_id():
+    tag_id = {"tagName": "tag1", "parentObjectId": "obj1"}
+    attributes = {"attr1": "value1", "attr2": "value2"}
+    tag = Tag(id=tag_id, attributes=attributes)
+    assert tag.id["tagName"] == "tag1"
+    assert tag.id["parentObjectId"] == "obj1"
+    assert tag.attributes == attributes
+    assert tag.data is None
+
+
+def test_init_with_str_id():
+    tag_id = "tag2"
+    attributes = {"attr1": "value1", "attr2": "value2"}
+    tag = Tag(id=tag_id, attributes=attributes)
+    assert tag.id == tag_id
+    assert tag.attributes == attributes
+    assert tag.data is None
+
+
+def test_add_data():
+    tag_id = "tag4"
+    attributes = {"attr1": "value1", "attr2": "value2"}
+    tag = Tag(id=tag_id, attributes=attributes)
+    tag.add_data(x="563", y=1, q=0)
+    assert tag.data[-1] == {"x": "563", "y": 1, "q": 0}
+
+
+def test_init_with_dict_id_missing_keys():
+    tag_id = {"tagName": "tag3"}
+    attributes = {"attr1": "value1", "attr2": "value2"}
+    with pytest.raises(ValueError):
+        Tag(id=tag_id, attributes=attributes)
+
+
+def test_clear_data():
+    tag_id = "tag6"
+    attributes = {"attr1": "value1", "attr2": "value2"}
+    tag = Tag(id=tag_id, attributes=attributes)
+    tag.add_data(x="563", y=1, q=0)
+    tag.clear_data()
+    assert tag.data is None

@@ -1,5 +1,6 @@
-.coverage
-venv
+Pipfile.lock
 __pycache__
 .pytest_cache
 main.py
+main_async.py
+.coverage
