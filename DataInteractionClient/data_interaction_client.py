@@ -1,8 +1,7 @@
 from typing import List, Optional, Union
 
 import httpx
-from pydantic import BaseModel
-from pydantic.decorator import validate_arguments
+from pydantic import BaseModel, validate_call
 
 from exceptions.data_source_not_active_exception import \
     DataSourceNotActiveException
@@ -58,7 +57,7 @@ class DataInteractionClient(BaseModel):
 
     base_url: str
 
-    @validate_arguments
+    @validate_call
     def connect(self, data_source_id: str) -> List[Tag]:
         """
         Подключение к необходимому источнику данных и сбор метаданных источника.
@@ -89,7 +88,7 @@ class DataInteractionClient(BaseModel):
         else:
             return self._make_tags_list(response["tags"])
 
-    @validate_arguments
+    @validate_call
     def set_data(self, tags: List[Tag]) -> str:
         """
         Отправляет данные тегов на платформу.
@@ -125,7 +124,7 @@ class DataInteractionClient(BaseModel):
             for tag in tags:
                 tag.clear_data()
 
-    @validate_arguments
+    @validate_call
     def get_data(
         self,
         tag_id: Union[str, dict, List[Union[str, dict]]],
@@ -192,7 +191,7 @@ class DataInteractionClient(BaseModel):
         response = self._make_request(url, {"params": params})
         return response["data"]
 
-    @validate_arguments
+    @validate_call
     def _make_tags_list(self, tags_data: List[dict]) -> List[Tag]:
         """
         Создает список тегов из предоставленных данных.
@@ -210,7 +209,7 @@ class DataInteractionClient(BaseModel):
         """
         return [Tag(id=item["id"], attributes=item["attributes"]) for item in tags_data]
 
-    @validate_arguments
+    @validate_call
     def _make_request(self, url: str, params: dict) -> httpx.Response:
         """
         Выполняет синхронный POST-запрос по указанному URL-адресу с предоставленными параметрами.
