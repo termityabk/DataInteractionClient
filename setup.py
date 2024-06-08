@@ -15,13 +15,13 @@ setup(
     url='https://github.com/termityabk/DataInteractionClient',
     packages=find_packages(),
     install_requires=[
-        'httpx==0.18.2',
+        'httpx==0.27.0',
         'pydantic==1.8.2',
-        'asyncio==0.23.7',
+        'asyncio==3.4.3',
     ],
     classifiers=[
         'License :: Other/Proprietary License',
         'Programming Language :: Python :: 3.10.14',
     ],
-    python_requires=">=3.10.14",
+    python_requires=">=3.10",
 )
